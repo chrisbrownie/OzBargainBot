@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: ozbargainbot
+
+Parameters:
+  TelegramChatIdParameter:
+    Type: String
+    Default: "/ozbargain/telegram_chat_id"
+  TelegramApiTokenParameter:
+    Type: String
+    Default: "/ozbargain/telegram_bot_token"
+  State:
+    Type: String
+    Default: "/ozbargain/state"
+
+Globals:
+  Function:
+    Timeout: 60
+    Runtime: python3.8
+
+Resources:
+  OzBargainBotFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ozbargain/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          CHAT_ID_PARAMETER: !Ref TelegramChatIdParameter
+          BOT_TOKEN_PARAMETER: !Ref TelegramApiTokenParameter
+          STATE_PARAMETER: !Ref State
+      Events:
+        ScheduledEvent:
+          Type: Schedule
+          Properties:
+            Description: Run every minute
+            Enabled: True
+            Schedule: 'rate(1 minute)'
+      Policies:
+        - Statement:
+            - Sid: SSMGetParametersPolicy
+              Effect: Allow
+              Action:
+                - ssm:GetParameter
+                - ssm:GetParameters
+                - ssm:GetParametersByPath
+                - ssm:PutParameter
+              Resource: !Sub "arn:aws:ssm:${ AWS::Region }:${ AWS::AccountId }:parameter/ozbargain/*"
+
